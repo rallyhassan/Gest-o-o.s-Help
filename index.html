@@ -591,16 +591,16 @@ async function carregarDashboard() {
   if (!res.ok) { toast('Erro: '+res.erro); return; }
 
   const d = res;
-  document.getElementById('c-abertas').textContent = d.qAberta;
-  document.getElementById('c-prontas').textContent = d.qPronta;
-  document.getElementById('c-entregues').textContent = d.qEntregue;
-  document.getElementById('c-liberadas').textContent = d.qLiberada;
-  document.getElementById('c-fat').textContent = fmt(d.totFat);
-  document.getElementById('c-cell').textContent = fmt(d.totCell);
-
-  document.getElementById('dv-caixa').textContent = fmt(d.totCaixa);
-  document.getElementById('dv-cell').textContent = fmt(d.totCell);
-  document.getElementById('dv-help').textContent = fmt(d.totCell);
+  const setEl = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setEl('c-abertas', d.qAberta);
+  setEl('c-prontas', d.qPronta);
+  setEl('c-entregues', d.qEntregue);
+  setEl('c-liberadas', d.qLiberada);
+  setEl('c-fat', fmt(d.totFat));
+  setEl('c-cell', fmt(d.totCell));
+  setEl('dv-caixa', fmt(d.totCaixa));
+  setEl('dv-cell', fmt(d.totCell));
+  setEl('dv-help', fmt(d.totCell));
 
   // Alertas
   const osRes = await apiGet({acao:'listarOS', unidade: unidade==='Consolidado'?'Centro':unidade});
@@ -904,14 +904,35 @@ function processarXLS(file) {
     try {
       const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
-      
+
+      // O SHARMAQ exporta com uma linha de título antes do cabeçalho real
+      // Precisamos encontrar a linha que contém "OS" para usar como header
+      const rawRows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      let headerRowIdx = 0;
+      for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
+        const row = rawRows[i].map(c => String(c).trim());
+        if (row.some(c => c.includes('OS') || c.includes('Modelo') || c.includes('MODELO') || c.includes('Defeito'))) {
+          headerRowIdx = i;
+          break;
+        }
+      }
+      // Reconstruir com o header correto
+      const headers = rawRows[headerRowIdx].map(c => String(c).trim());
+      const rows = rawRows.slice(headerRowIdx + 1).map(r => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = r[i] !== undefined ? r[i] : ''; });
+        return obj;
+      }).filter(r => Object.values(r).some(v => v !== ''));
+
       if (!rows.length) { toast('Arquivo vazio ou formato não reconhecido'); return; }
       
       // Detect header mapping (SHARMAQ export columns)
       const sample = rows[0];
       const keys = Object.keys(sample);
       console.log('Columns found:', keys);
+      console.log('Header row index:', headerRowIdx);
+      console.log('Headers:', headers);
+      console.log('First row sample:', sample);
       
       // Map SHARMAQ columns to our fields
       const mapCol = (row, candidates) => {
