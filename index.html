@@ -189,11 +189,11 @@ tr:hover td{background:var(--surface2)}
   </div>
 
   <div class="navtabs" id="navtabs">
-    <button class="navtab active" onclick="switchTab('dashboard')">Dashboard</button>
-    <button class="navtab" onclick="switchTab('os')">Ordens de Serviço</button>
-    <button class="navtab" onclick="switchTab('importar')">⬆ Importar XLS</button>
-    <button class="navtab" id="tab-fechamento" onclick="switchTab('fechamento')">Fechamento</button>
-    <button class="navtab" id="tab-capital" onclick="switchTab('capital')">Capital</button>
+    <button class="navtab active" onclick="switchTab('dashboard', this)">Dashboard</button>
+    <button class="navtab" onclick="switchTab('os', this)">Ordens de Serviço</button>
+    <button class="navtab" onclick="switchTab('importar', this)">⬆ Importar XLS</button>
+    <button class="navtab" onclick="switchTab('fechamento', this)">Fechamento</button>
+    <button class="navtab" onclick="switchTab('capital', this)">Capital</button>
   </div>
 
   <div class="main">
@@ -545,12 +545,13 @@ function sair() {
 }
 
 // ── Navegação ─────────────────────────────────────────────────
-function switchTab(tab) {
+function switchTab(tab, el) {
   currentTab = tab;
   document.querySelectorAll('.navtab').forEach(t=>t.classList.remove('active'));
-  event.target.classList.add('active');
+  if (el) el.classList.add('active');
   ['dashboard','os','importar','fechamento','capital'].forEach(t=>{
-    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+    const div = document.getElementById('tab-'+t);
+    if (div) div.style.display = t===tab?'block':'none';
   });
   if (tab==='dashboard') carregarDashboard();
   if (tab==='os') carregarOS();
