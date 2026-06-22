@@ -571,14 +571,18 @@ function trocarUnidade(u) {
 // ── API calls ─────────────────────────────────────────────────
 async function apiGet(params) {
   const url = SCRIPT_URL + '?' + new URLSearchParams(params);
-  const r = await fetch(url);
+  const r = await fetch(url, {redirect: 'follow'});
   return r.json();
 }
 async function apiPost(body) {
-  const r = await fetch(SCRIPT_URL, {
-    method:'POST', body: JSON.stringify(body),
-    headers:{'Content-Type':'application/json'}
+  // Google Apps Script exige GET com parâmetros para evitar CORS
+  // Codificamos o body como parâmetro 'payload' na URL
+  const params = new URLSearchParams({
+    ...body,
+    payload: JSON.stringify(body)
   });
+  const url = SCRIPT_URL + '?' + params;
+  const r = await fetch(url, {redirect: 'follow'});
   return r.json();
 }
 
